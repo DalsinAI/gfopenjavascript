@@ -62,6 +62,10 @@ struct JSEngineTable {
     /* v2 append-only extension. jt_Size gates this pointer: a v1
      * JavaScriptEngine still serves every existing library vector. */
     JSValue (*ClassPrototype)(JSTask task, JSClass cls);
+    /* v3 append-only off-task nonblocking control vectors. Their jt_Size
+     * must be checked; a v2 engine never receives these requests. */
+    LONG (*Running)(JSTask task);
+    LONG (*Stop)(JSTask task);
 };
 
 /* The head of every JSTask */

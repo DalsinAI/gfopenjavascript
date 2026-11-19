@@ -25,6 +25,7 @@
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <libraries/javascript.h>
+#include <stddef.h>
 
 #include "jsl_engine_amiga.h"
 
@@ -32,7 +33,7 @@
 #define REG(r, decl) register decl __asm(#r)
 #endif
 
-#define LIB_VERSION  2
+#define LIB_VERSION  3
 #define LIB_REVISION 0
 
 #define ENGINE_PATH "LIBS:JavaScript/JavaScriptEngine"
@@ -53,9 +54,9 @@ struct DosLibrary *DOSBase;
 int start(void) { return -1; }
 
 static const char lib_name[] = JAVASCRIPTNAME;
-static const char lib_id[] = "javascript.library 2.0 (19.11.2026) AmiCradle Team\r\n";
+static const char lib_id[] = "javascript.library 3.0 (19.11.2026) AmiCradle Team\r\n";
 static const char lib_ver[] __attribute__((used)) =
-    "\0$VER: javascript.library 2.0 (19.11.2026) AmiCradle Team";
+    "\0$VER: javascript.library 3.0 (19.11.2026) AmiCradle Team";
 
 /* ---- Library housekeeping -------------------------------------------------- */
 
@@ -263,11 +264,30 @@ static LONG L_JS_ErrorText(REG(a0, JSTask task), REG(a1, STRPTR buffer), REG(d0,
  * their original 1.0 prefix; jt_Size guards the new callback. */
 static JSValue L_JS_ClassPrototype(REG(a0, JSTask task), REG(a1, JSClass cls))
 {
-    if (!task || !cls || T(task)->jt_Size < sizeof(struct JSEngineTable))
+    if (!task || !cls ||
+        T(task)->jt_Size < offsetof(struct JSEngineTable, Running))
         return NULL;
     return T(task)->ClassPrototype(task, cls);
 }
 
+
+/* ABI v3: both vectors are guaranteed nonblocking. Old v2 engine task
+ * tables lack them; never dereference their absent trailing fields. */
+static LONG L_JS_Running(REG(a0, JSTask task))
+{
+    if (!task || T(task)->jt_Size <
+        offsetof(struct JSEngineTable, Stop) + sizeof(T(task)->Stop))
+        return -1;
+    return T(task)->Running(task);
+}
+static LONG L_JS_Stop(REG(a0, JSTask task))
+{
+    if (!task) return JSERR_BADARGS;
+    if (T(task)->jt_Size <
+        offsetof(struct JSEngineTable, Stop) + sizeof(T(task)->Stop))
+        return JSERR_NOENGINE;
+    return T(task)->Stop(task);
+}
 
 /* sfd/javascript_lib.sfd's order, line for line (check_vectors.py) */
 static const APTR lib_vectors[] = {
@@ -303,6 +323,8 @@ static const APTR lib_vectors[] = {
     (APTR)L_JS_Throw,               /* -198 */
     (APTR)L_JS_ErrorText,           /* -204 */
     (APTR)L_JS_ClassPrototype,      /* -210 */ /* ABI v2, append-only */
+    (APTR)L_JS_Running,             /* -216 */ /* ABI v3, nonblocking */
+    (APTR)L_JS_Stop,                /* -222 */ /* ABI v3, nonblocking */
     (APTR)-1
 };
 

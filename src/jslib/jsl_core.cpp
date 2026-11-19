@@ -21,8 +21,19 @@
  *
  * MIT, Copyright (c) 2026 AmiCradle Team.
  */
+/* The pinned 68040 JSC build uses system malloc (32-bit AmigaOS).
+ * Its PCH supplies this internally; the standalone source build removes
+ * that PCH, so private VM headers need the same explicit setting. */
+#ifndef USE_SYSTEM_MALLOC
+#define USE_SYSTEM_MALLOC 1
+#endif
 #include <JavaScriptCore/JavaScript.h>
 #include <JavaScriptCore/JSWeakPrivate.h>
+/* Private engine-side, concurrent-safe JSC VM termination trap.
+ * Public javascript.library clients see only a JSTask handle. */
+#include "APICast.h"
+#include "VM.h"
+#include "VMTraps.h"
 
 #include <atomic>
 #include <cstddef>
@@ -89,6 +100,12 @@ struct Task {
     std::unordered_map<void *, Wrapper *> wrappers;     // the live wrapper of each program object
     std::unordered_set<Wrapper *> allWrappers;          // and older ones not yet finalized
     bool quit = false;
+    // Control plane is lock-free and never dispatches onto the busy JSTask.
+    // 0=idle, 1=executing, 2=stop requested. Only the owning task may reset.
+    std::atomic<long> executionState { 0 };
+    std::atomic<bool> stopRequested { false };
+    std::atomic_flag controlLock = ATOMIC_FLAG_INIT;
+    JSC::VM *vm = nullptr;
     char error[errorSize] = "";
 };
 
@@ -399,9 +416,21 @@ ClassRec *registerClass(Task *t, const JSHostClass *host)
 
 // ---- The script thread ------------------------------------------------------------
 
+/* A bounded spin guard synchronizes the request with job completion.
+ * It is held for microseconds only, never during JS execution or messaging.
+ * This prevents late STOP requests from poisoning later jobs. */
+static void lockControl(Task *t)
+{
+    while (t->controlLock.test_and_set(std::memory_order_acquire)) {}
+}
+static void unlockControl(Task *t)
+{
+    t->controlLock.clear(std::memory_order_release);
+}
 void setUp(Task *t)
 {
     t->group = JSContextGroupCreate();
+    t->vm = ::toJS(t->group);
     t->ctx = JSGlobalContextCreateInGroup(t->group, nullptr);
     JSClassDefinition fn = kJSClassDefinitionEmpty;
     fn.className = "HostFunction";
@@ -469,7 +498,19 @@ void taskMain(void *arg, jsl_box *box)
     setUp(t);
     while (!t->quit) {
         jsl_call *call = jsl_os_receive(box);
+        lockControl(t);
+        // The VM's previous unconsumed termination trap belongs to the old
+        // execution; clearing it cannot re-enable old JavaScript.
+        t->vm->traps().clearTrap(JSC::VMTraps::NeedTermination);
+        t->stopRequested.store(false, std::memory_order_release);
+        t->executionState.store(1, std::memory_order_release);
+        unlockControl(t);
         call->fn(call->arg);
+        lockControl(t);
+        t->executionState.store(0, std::memory_order_release);
+        t->stopRequested.store(false, std::memory_order_release);
+        t->vm->traps().clearTrap(JSC::VMTraps::NeedTermination);
+        unlockControl(t);
         if (call->async)
             jsl_os_free(call);
         else
@@ -537,11 +578,41 @@ static JSTask eNewTask(struct TagItem *tags)
     return t;
 }
 
+/* Pure atomic control plane: never waits behind a runaway JS invocation.
+ * Clients must serialize EndTask with other API calls for this handle.
+ * Return -1 on an invalid handle, otherwise 0=idle/1=running/2=stopping. */
+static LONG eRunning(JSTask jt)
+{
+    Task *t = task(jt);
+    return t ? static_cast<LONG>(t->executionState.load(std::memory_order_acquire)) : -1;
+}
+
+static LONG eStop(JSTask jt)
+{
+    Task *t = task(jt);
+    if (!t) return JSERR_BADARGS;
+    // This JSC VM belongs exclusively to this JSTask, not other clients.
+    // NeedTermination is CONCURRENT_SAFE (VM.h). Unlike an external watchdog
+    // timer, it does not depend on WTF WorkQueue dispatch on AmigaOS.
+    lockControl(t);
+    long current = t->executionState.load(std::memory_order_acquire);
+    if (current == 1) {
+        t->stopRequested.store(true, std::memory_order_release);
+        t->executionState.store(2, std::memory_order_release);
+        t->vm->notifyNeedTermination();
+    }
+    unlockControl(t);
+    return JSERR_OK;
+}
+
 static VOID eEndTask(JSTask jt)
 {
     Task *t = task(jt);
     if (!t || jsl_os_is_owner(t->box))
         return;     // not from its own script task
+    // Prevent a live, cancellable JS infinite loop from indefinitely
+    // blocking the task's cleanup. This does not destroy the shared engine.
+    eStop(jt);
     run(t, [&] { t->quit = true; });
     onEngine([&] {
         jsl_os_join(t->box);
@@ -1047,7 +1118,8 @@ static const JSEngineTable table = {
     eNewLong, eNewDouble, eNewBool, eNewNull, eNewString, eNewObject, eNewFunction,
     eToLong, eToDouble, eToBool, eToString, eGetProp, eSetProp, eGetIndex, eSetIndex,
     eCall, eRegisterClass, eWrap, eUnwrap, eThrow, eErrorText,
-    eClassPrototype
+    eClassPrototype,
+    eRunning, eStop
 };
 
 CONST struct JSEngineTable *jsl_engine_table(void)

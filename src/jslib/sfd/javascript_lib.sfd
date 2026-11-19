@@ -1,4 +1,4 @@
-==id $Id: javascript_lib.sfd 1.0 (22.10.2026) AmiCradle Team $
+==id $Id: javascript_lib.sfd 3.0 (19.11.2026) AmiCradle Team $
 * javascript.library: JavaScript for any program. MIT, Copyright (c) 2026 AmiCradle Team.
 * scripts/gen-jslib-sdk.sh makes sdk/ (clib, inline, pragmas, proto, FD, LVOs) from this with
 * GFOpenNDK's ndkgen.py; javascript_lib.c's vector table follows it line for line (check_vectors.py).
@@ -45,4 +45,7 @@ JSValue JS_Throw(JSTask task, CONST_STRPTR message) (a0,a1)
 LONG JS_ErrorText(JSTask task, STRPTR buffer, LONG size) (a0,a1,d0)
 * v2 appended host-class prototype access. Caller owns returned JSValue.
 JSValue JS_ClassPrototype(JSTask task, JSClass cls) (a0,a1)
+* v3 append-only independent JSTask execution control (off-task, nonblocking).
+LONG JS_Running(JSTask task) (a0)
+LONG JS_Stop(JSTask task) (a0)
 ==end

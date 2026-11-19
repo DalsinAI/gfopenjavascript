@@ -1,0 +1,4 @@
+JAVASCRIPT_V3_CONTROL_BEGIN
+JAVASCRIPT_V3_CONTROL pre=0 running=1 stop=0 finished=0 interrupted=-1 idle=2 recovery=-1/-1 other=-1/-1 status=FAIL
+JAVASCRIPT_V3_CONTROL_RC 2
+JAVASCRIPT_V3_CONTROL_END

@@ -35,5 +35,7 @@ _LVOJS_Unwrap	EQU	-192
 _LVOJS_Throw	EQU	-198
 _LVOJS_ErrorText	EQU	-204
 _LVOJS_ClassPrototype	EQU	-210
+_LVOJS_Running	EQU	-216
+_LVOJS_Stop	EQU	-222
 
 	ENDC	; LVO_JAVASCRIPT_LIB_I

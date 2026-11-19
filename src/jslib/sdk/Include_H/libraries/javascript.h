@@ -40,6 +40,17 @@
  * for old clients; callers MUST OpenLibrary with version >= 2 before using
  * the additional vector, and accept NULL with an older engine. */
 #define JAVASCRIPT_CLASS_PROTOTYPE_VERSION 2
+/* v3 append-only control vectors; OpenLibrary(javascript.library, 3).
+ * No control call waits for the script to finish. The caller MUST ensure
+ * its task handle remains alive until all control callers have returned.
+ * Never pass a JSTask to another client without managing that lifetime.
+ * JS_EndTask destroys only this task, not the shared JavaScriptCore engine.
+ */
+#define JAVASCRIPT_TASK_CONTROL_VERSION 3
+#define JSTASK_IDLE      0
+#define JSTASK_RUNNING   1
+#define JSTASK_STOPPING  2
+
 
 typedef APTR JSTask;
 typedef APTR JSValue;
