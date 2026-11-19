@@ -47,6 +47,13 @@ jobs:
               -Isrc/jslib -Isrc/jslib/sdk/Include_H -I$PWD/gfopensdk/OpenNDK/Include_H \
               -c src/jslib/$f.c -o build/javascript-library/$f.o
           done
+      - name: Cross-compile native prototype regression probe
+        run: |
+          D=tc/gfopenamigagcc-16.2.0-open6-x86_64-linux/bin
+          $D/m68k-amigaos-gcc -m68040 -specs=$PWD/toolchain/m68k-soft-m68040.specs -mcrt=nix20 \
+            -Os -std=gnu99 -Wall -Wextra -Werror \
+            -Isrc/jslib/sdk/Include_H -I$PWD/gfopensdk/OpenNDK/Include_H \
+            tests/native/class_prototype_probe.c -o build/javascript-library/js-prototype-probe
       - name: Validate Amiga files and v2 version tag
         run: |
           D=tc/gfopenamigagcc-16.2.0-open6-x86_64-linux/bin
@@ -66,5 +73,6 @@ jobs:
           path: |
             build/javascript-library/javascript.library
             build/javascript-library/JS
+            build/javascript-library/js-prototype-probe
             build/javascript-library/javascript.library.map
           retention-days: 30
