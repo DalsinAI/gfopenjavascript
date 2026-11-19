@@ -6,7 +6,7 @@ GFOS's standalone JavaScript runtime for AmigaOS 3.2.3 on 68040/FPU: the `javasc
 
 ## Canonical code and dependency handoff
 
-This repository is the intended independent release home, not a forked, competing interpreter. Until the source migration is completed, the **verified canonical source** remains [DalsinAI/gfopenbrowser/src/jslib](https://github.com/DalsinAI/gfopenbrowser/tree/main/src/jslib) at its append-only ABI v2 merge, [`c731d89f6f018ffb2ea4091cd00595b5fbba9e9a`](https://github.com/DalsinAI/gfopenbrowser/commit/c731d89f6f018ffb2ea4091cd00595b5fbba9e9a). The matching SDK release contract is [DalsinAI/gfopensdk](https://github.com/DalsinAI/gfopensdk) at `9433cc8d2b1b363b095f0af14e3c114f2aebb22a`.
+This repository is the intended independent release home, not a forked, competing interpreter. The original verified donor source is [DalsinAI/gfopenbrowser/src/jslib](https://github.com/DalsinAI/gfopenbrowser/tree/main/src/jslib) at its append-only ABI v2 merge, [`c731d89f6f018ffb2ea4091cd00595b5fbba9e9a`](https://github.com/DalsinAI/gfopenbrowser/commit/c731d89f6f018ffb2ea4091cd00595b5fbba9e9a). The matching SDK release contract is [DalsinAI/gfopensdk](https://github.com/DalsinAI/gfopensdk) at `9433cc8d2b1b363b095f0af14e3c114f2aebb22a`.
 
 Do not independently modify duplicated copies of `jsl_core.cpp`, `javascript_lib.c`, the SFD or headers. The extraction must preserve history/attribution, consistent ABI vector ordering and the existing GFOpenBrowser build until both projects can build from the standalone source.
 
@@ -18,6 +18,10 @@ Do not independently modify duplicated copies of `jsl_core.cpp`, `javascript_lib
 | JSC/WebKit toolchain and patches | `gfopenbrowser/webkit`, build integration |
 | Browser web UI and WebCore | Remain in `gfopenbrowser` |
 | Standalone versioned release artifacts and qualification | **This repository**, once certified |
+
+## Source extraction and build entry points
+
+The extracted JavaScript runtime, build entry points, unit tests, and toolchain specs now live here as a standalone candidate. The original browser source is still retained for consumer compatibility; do not delete it until browser CI consumes this repository and native qualification passes. See [RC1 qualification](docs/RC1-QUALIFICATION.md).
 
 ## Proposed 2.0.0-rc1 acceptance gates
 

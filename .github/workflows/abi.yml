@@ -1,0 +1,23 @@
+name: javascript.library ABI and source checks
+on:
+  push:
+  pull_request:
+jobs:
+  abi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check append-only library vectors
+        run: python3 src/jslib/check_vectors.py
+      - name: Validate shell build entry points
+        run: |
+          sh -n scripts/build-javascript-library.sh
+          sh -n scripts/build-javascript-engine.sh
+          sh -n scripts/gen-jslib-sdk.sh
+          sh -n tests/jslib/run.sh
+      - name: Ensure v2 prototype API and release contract exist
+        run: |
+          grep -q 'JS_ClassPrototype' src/jslib/sfd/javascript_lib.sfd
+          grep -q 'JAVASCRIPT_CLASS_PROTOTYPE_VERSION' src/jslib/sdk/Include_H/libraries/javascript.h
+          grep -q 'JSL_TABLE_VERSION' src/jslib/jsl_engine.h
+          test -f docs/RC1-QUALIFICATION.md
