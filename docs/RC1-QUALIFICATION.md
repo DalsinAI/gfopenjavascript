@@ -44,3 +44,19 @@ Do not deploy a v2 loader paired with an unknown v1 engine and infer that
 result is required. The engine and loader must be deployed and tested together.
 
 No claim is made here that a guest run or release binary has passed.
+
+
+## CI evidence (2026-11-19)
+
+Standalone source extraction commit: `684f9ed19a1572fffa2f57ea81685d45a74b13d2`.
+Executable mode correction: `807c354270cb786c6673627069fabb70a6c9f2f1`.
+
+- Static ABI run `44477193553`: successful.
+- Cross-build run `44477193592`: successful.
+- Library: 3,696 bytes, SHA-256 `d8920e912507b5b8e25a30e6b04599362fc915273fccb371915304d13e0e4d80`.
+- JS: 6,892 bytes, SHA-256 `9bb362d8bc147b124cfddc9197e632ac14286eaad0f95f354d3d1aa7dcd91ffe`.
+- CI artifact: `gfopenjavascript-v2-68040-loader-unqualified`.
+
+The CI job tests the 68k loader, JS shell, engine dispatcher compilation
+and ABI metadata. It **does not** link a JavaScriptCore-backed
+JavaScriptEngine or run the library in a guest. Keep RC1 unreleased.

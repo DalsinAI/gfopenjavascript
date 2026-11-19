@@ -31,6 +31,6 @@ The extracted JavaScript runtime, build entry points, unit tests, and toolchain 
 4. Verify standalone `JS` shell client and GFOpenBrowser integration against the same pair; then test Oolite `Vector3D` `new` and `instanceof`.
 5. Publish SDK material, source provenance, reproducible build instructions, license notices, test evidence, changelog, hashes and a GitHub **prerelease** only when all gates pass.
 
-**Known state (2026-11-19):** The 3,672-byte GCC 16.2 v2 library loadseg cross-built and v2 SDK merged, but an installed, matching v2 engine and native `JS_ClassPrototype` guest qualification are not yet verified. This is not a release-ready claim.
+**Known state (2026-11-19):** The standalone source is extracted and both static ABI CI and the GCC 16.2 68040 loader/JS CI pass. The standalone CI library is 3,696 bytes (SHA-256 `d8920e912507b5b8e25a30e6b04599362fc915273fccb371915304d13e0e4d80`); CLI SHA-256 is `9bb362d8bc147b124cfddc9197e632ac14286eaad0f95f354d3d1aa7dcd91ffe`. **Neither constitutes the complete RC.** The matching v2 JavaScriptEngine, native guest tests and browser consumer switch are still outstanding. Do not publish a prerelease yet.
 
 See the [browser migration contract](https://github.com/DalsinAI/gfopenbrowser) for how its current local build transitions without a breaking source move.
