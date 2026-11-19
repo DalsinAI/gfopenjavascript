@@ -60,3 +60,58 @@ Executable mode correction: `807c354270cb786c6673627069fabb70a6c9f2f1`.
 The CI job tests the 68k loader, JS shell, engine dispatcher compilation
 and ABI metadata. It **does not** link a JavaScriptCore-backed
 JavaScriptEngine or run the library in a guest. Keep RC1 unreleased.
+
+## Real JavaScriptEngine v2 and Oolite native guest evidence (2026-11-19)
+
+A reproducible JavaScriptCore engine cross-build now exists:
+scripts/build-javascript-engine-webcore-ninja.py consumes a pinned existing
+WebCore Ninja/JavaScriptCore build and canonical standalone GFOpenJavaScript
+source. It compiles the JSC bridge C++ files, AmigaOS dispatcher and jsimage
+host, then links real JSC/WTF/PAL/ICU without WebCore or OBCore.
+
+A second independent rebuild produced **the identical**
+37,918,816-byte AmigaOS loadseg JavaScriptEngine, SHA-256:
+d35f5a3846786549dc8b8a453eb813f71bd7bf32bf5564d89cfd3b4dcc69c923.
+
+Build provenance:
+- GFOpenJavaScript source at c8085afbfcbf15db49a904dac50abf44bfcce370
+- JSC archive SHA-256 9f61f1c2ddb03e90dd5b8004ebe034957003e3ea9e6f23ef00b4c329b22e57bf
+- JSC build fingerprint 42092cdfd6b93cc3ecca29538856b0ab138517ff8d75719e568c0f2520dd54ff
+- GCC 16.2, target AmigaOS 68040/FPU
+
+**Native guest qualification:** the standalone CI loader (SHA-256
+d8920e912507b5b8e25a30e6b04599362fc915273fccb371915304d13e0e4d80)
+and new v2 engine were deployed as a pair in AmiCradle Team 1 - Oolite
+JSAPI RC1, AmigaOS 3.2.3 AC090 68040.
+
+Guest transcript shows:
+- Oolite Vector3D strict native prototype identity: v2=1, install=0,
+  eval=0, answer=42, post=0, PASS, RC 0
+- Full Vector3D constructor/arithmetic/array regression: PASS, RC 0
+- Original Oolite Ship.prototype, instanceof and unconstructable-call
+  bootstrap: PASS, RC 0, following a fix to the Oolite adapter
+- Class prototype, native field, wrapping and task-isolation probe:
+  PASS, RC 0
+- Standalone JS CLI returned RC 0 and printed 67 from an EVAL quoting
+  invocation; an explicit script file (print(6 * 7)) subsequently printed
+  exactly 42 and returned RC 0. Output is preserved in the Oolite evidence
+  file oolite-gfopenjavascript-standalone-v2-cli-42-guest-20261119.log.
+
+Raw guest transcript:
+DalsinAI/amigaoolite/tests/evidence/oolite-gfopenjavascript-standalone-v2-pair-guest-20261119.log.
+
+These qualify the specific engine/loader pair in the native guest. The
+browser consumer, cache concurrency and the original complete Oolite game
+link are NOT fully qualified. The 101 unresolved SpiderMonkey JS symbols
+in the original Oolite objects remain a separate source migration gate.
+
+Rebuild using the pinned JSC archive:
+    python3 scripts/build-javascript-engine-webcore-ninja.py \
+      --webkit-build /path/to/pinned/build-Amiga \
+      --toolchain-bin /path/to/GCC16/prefix/bin \
+      --ndk-include /path/to/GCC16/prefix/m68k-amigaos/ndk-include.vendor \
+      --jsc-sha256 9f61f1c2ddb03e90dd5b8004ebe034957003e3ea9e6f23ef00b4c329b22e57bf \
+      --out /path/to/isolated/output
+
+The engine-build-manifest.json records input/source and output hashes.
+Do NOT publish RC1 until the remaining release gates above are completed.
