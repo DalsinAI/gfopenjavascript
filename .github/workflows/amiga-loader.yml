@@ -51,7 +51,7 @@ jobs:
         run: |
           D=tc/gfopenamigagcc-16.2.0-open6-x86_64-linux/bin
           $D/m68k-amigaos-gcc -m68040 -specs=$PWD/toolchain/m68k-soft-m68040.specs -mcrt=nix20 \
-            -Os -std=gnu99 -Wall -Wextra -Werror \
+            -Os -std=gnu99 -Wall -Wextra -Werror -Wno-pointer-sign \
             -Isrc/jslib/sdk/Include_H -I$PWD/gfopensdk/OpenNDK/Include_H \
             tests/native/class_prototype_probe.c -o build/javascript-library/js-prototype-probe
       - name: Validate Amiga files and v2 version tag
